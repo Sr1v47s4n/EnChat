@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnChat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-1/4 bg-gray-900 bg-opacity-80 backdrop-blur-md p-5 border-r border-gray-700">
+            <h2 class="text-xl font-bold text-center mb-6">
+                <i class="fas fa-comments text-blue-400"></i> EnChat
+            </h2>
+            <nav>
+                <a href="{% url 'conversations' %}" class="flex items-center space-x-3 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition">
+                    <i class="fas fa-message text-blue-400"></i>
+                    <span>Chats</span>
+                </a>
+                <a href="{% url 'search_user' %}" class="flex items-center space-x-3 p-3 mt-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">
+                    <i class="fas fa-user-plus text-green-400"></i>
+                    <span>Find Users</span>
+                </a>
+                <a href="{% url 'profile' %}" class="flex items-center space-x-3 p-3 mt-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">
+                    <i class="fas fa-user text-yellow-400"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="{% url 'user_logout' %}" class="flex items-center space-x-3 p-3 mt-2 rounded-lg bg-red-600 hover:bg-red-700 transition">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+</body>
+</html>
