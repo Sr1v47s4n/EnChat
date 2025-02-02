@@ -6,12 +6,12 @@ from django.contrib.auth.models import (
 )
 
 DEFAULT_PROFILE_PICS = [
-    "/media/default_profile_pics/__2.png",
-    "/media/default_profile_pics/__3.png",
-    "/media/default_profile_pics/__1.png",
-    "/media/default_profile_pics/__4.png",
-    "/media/default_profile_pics/__5.png",
-    "/media/default_profile_pics/__6.png",
+    "https://r00tus34.me/EnChat/EnChat/assests/1.png",
+    "https://r00tus34.me/EnChat/EnChat/assests/2.png",
+    "https://r00tus34.me/EnChat/EnChat/assests/3.png",
+    "https://r00tus34.me/EnChat/EnChat/assests/4.png",
+    "https://r00tus34.me/EnChat/EnChat/assests/5.png",
+    "https://r00tus34.me/EnChat/EnChat/assests/6.png",
 ]
 
 

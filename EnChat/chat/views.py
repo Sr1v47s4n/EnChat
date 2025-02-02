@@ -37,7 +37,7 @@ def conversations(request):
         .order_by("sender", "receiver", "-timestamp")
         .distinct("sender", "receiver")
     )
-    #decrypt the messages
+    # decrypt the messages
     for conversation in conversations:
         conversation.encrypted_message = decrypt_message(conversation.encrypted_message)
     return render(
@@ -68,8 +68,6 @@ def chat(request, receiver_id):
             "receiver": message.receiver.username,  # Convert to string
             "message": (
                 decrypt_message(message.encrypted_message)
-                if message.encrypted_message
-                else ""
             ),  # Handle empty messages
             "timestamp": message.timestamp.strftime(
                 "%Y-%m-%d %H:%M:%S"
@@ -90,25 +88,71 @@ def chat(request, receiver_id):
 
 
 @login_required
-def send_message(request, receiver_id):
-    """Send a message to the selected user"""
+def get_messages(request, receiver_id):
+    """AJAX endpoint for getting messages"""
     user = request.user
-    receiver = User.objects.get(id=receiver_id)
+    receiver = get_object_or_404(User, id=receiver_id)
+    last_id = request.GET.get("last_id", 0)
 
+    # Get messages after last_id
+    messages = PrivateMessage.objects.filter(
+        Q(
+            Q(sender=user) & Q(receiver=receiver)
+            | Q(sender=receiver) & Q(receiver=user)
+        ),
+        id__gt=last_id,
+    ).order_by("timestamp")
+
+    # Mark unread messages as read
+    unread_messages = messages.filter(receiver=user, is_read=False)
+    unread_messages.update(is_read=True, read_at=timezone.now())
+
+    # Refresh messages to get updated read status
+    messages = messages.all()
+
+    # Serialize messages
+    serialized = [
+        {
+            "id": m.id,
+            "sender": m.sender.username,
+            "message": decrypt_message(m.encrypted_message),
+            "timestamp": m.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "is_read": m.is_read,
+            "read_at": m.read_at.strftime("%Y-%m-%d %H:%M:%S") if m.read_at else None,
+        }
+        for m in messages
+    ]
+
+    return JsonResponse({"messages": serialized})
+
+
+@login_required
+def send_message(request, receiver_id):
+    """Handle message sending via AJAX"""
     if request.method == "POST":
-        message = request.POST.get(
-            "message", ""
-        ).strip()  # Ensure message is a string and trim spaces
+        receiver = get_object_or_404(User, id=receiver_id)
+        message_text = request.POST.get("message", "").strip()
 
-        if not message:  # Check if message is empty or None
-            return JsonResponse({"success": False, "error": "Message cannot be empty"})
+        # Create and save message
 
-        PrivateMessage.objects.create(
-            sender=user, receiver=receiver, encrypted_message=encrypt_message(message)
+        message = PrivateMessage.objects.create(
+            sender=request.user, receiver=receiver, encrypted_message=message_text
         )
-        return JsonResponse({"success": True})
 
-    return JsonResponse({"success": False, "error": "Invalid request method"})
+        # Return created message data
+        return JsonResponse(
+            {
+                "success": True,
+                "message": {
+                    "id": message.id,
+                    "sender": request.user.username,
+                    "message": message_text,
+                    "timestamp": message.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    "is_read": False,
+                },
+            }
+        )
+    return JsonResponse({"success": False}, status=405)
 
 
 @login_required
@@ -139,7 +183,7 @@ def search_user(request):
         return render(request, "chat/search_user.html", {"users": users})
     # make sure it is not returning the id of the user signed in
     users = User.objects.filter(is_private=False).exclude(id=request.user.id)
-    
+
     return render(request, "chat/search_user.html", {"users": users})
 
 
