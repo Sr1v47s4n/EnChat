@@ -51,10 +51,10 @@ def conversations(request):
 
 
 @login_required
-def chat(request, receiver_id):
+def chat(request, slug):
     """Retrieve all messages between the user and the selected user"""
     user = request.user
-    receiver = get_object_or_404(User, id=receiver_id)
+    receiver = get_object_or_404(User, slug=slug)
 
     messages = PrivateMessage.objects.filter(
         Q(sender=user, receiver=receiver) | Q(sender=receiver, receiver=user)
@@ -82,10 +82,10 @@ def chat(request, receiver_id):
 
 
 @login_required
-def get_messages(request, receiver_id):
+def get_messages(request, slug):
     """AJAX endpoint for getting messages"""
     user = request.user
-    receiver = get_object_or_404(User, id=receiver_id)
+    receiver = get_object_or_404(User, slug=slug)
     last_id = request.GET.get("last_id", 0)
 
     # Get messages after last_id
@@ -121,10 +121,10 @@ def get_messages(request, receiver_id):
 
 
 @login_required
-def send_message(request, receiver_id):
+def send_message(request, slug):
     """Handle message sending via AJAX"""
     if request.method == "POST":
-        receiver = get_object_or_404(User, id=receiver_id)
+        receiver = get_object_or_404(User, slug=slug)
         message_text = request.POST.get("message", "").strip()
 
         # Create and save message

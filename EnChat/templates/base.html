@@ -10,9 +10,9 @@
 <body class="bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white">
     <div class="flex h-screen">
         <!-- Sidebar -->
-        <aside class="w-1/4 bg-gray-900 bg-opacity-80 backdrop-blur-md p-5 border-r border-gray-700">
-            <h2 class="text-xl font-bold text-center mb-6">
-                <i class="fas fa-comments text-blue-400"></i> EnChat
+        <aside id="sidebar" class="fixed md:relative md:w-64 w-64 max-w-xs h-full bg-gray-900 bg-opacity-80 backdrop-blur-md p-5 border-r border-gray-700 transform -translate-x-full md:translate-x-0 transition-transform">
+            <h2 class="text-xl font-bold text-center mb-6 flex items-center justify-center">
+                <i class="fas fa-comments text-blue-400 mr-2"></i> EnChat
             </h2>
             <nav>
                 <a href="{% url 'conversations' %}" class="flex items-center space-x-3 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition">
@@ -36,9 +36,24 @@
 
         <!-- Main Content -->
         <main class="flex-1 p-6">
+            <!-- Hamburger Menu for Mobile -->
+            <button id="menu-btn" class="absolute top-4 left-4 md:hidden bg-gray-800 p-2 rounded-md focus:outline-none">
+                <i class="fas fa-bars text-white text-xl"></i>
+            </button>
+
             {% block content %}
             {% endblock %}
         </main>
     </div>
+
+    <!-- Sidebar Toggle Script -->
+    <script>
+        const sidebar = document.getElementById("sidebar");
+        const menuBtn = document.getElementById("menu-btn");
+
+        menuBtn.addEventListener("click", () => {
+            sidebar.classList.toggle("-translate-x-full");
+        });
+    </script>
 </body>
 </html>
