@@ -51,7 +51,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     is_private = models.BooleanField(default=False)
-    slug = models.SlugField(max_length=50, unique=True, blank=True)
+    slug = models.SlugField(max_length=50)
     objects = UserManager()
 
     USERNAME_FIELD = "email"

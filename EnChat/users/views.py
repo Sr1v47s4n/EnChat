@@ -31,7 +31,7 @@ def user_login(request):
         email = request.POST.get("email")
         password = request.POST.get("password")
         user = authenticate(email=email, password=password)
-        print(user)
+        # print(user)
         if user is not None:
             login(request, user)
             messages.success(request, "You are now logged in")
@@ -48,7 +48,7 @@ def user_logout(request):
 
 @login_required
 def profile(request):
-    print(request.user.is_private)
+    # print(request.user.is_private)
     return render(request, "users/profile.html", {"profile_pics": DEFAULT_PROFILE_PICS})
 
 

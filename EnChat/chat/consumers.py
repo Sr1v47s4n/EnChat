@@ -4,7 +4,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth import get_user_model
 from .models import PrivateMessage
 from django.utils import timezone
-from utils import encrypt_message, decrypt_message
+from utils import decrypt_message
 
 User = get_user_model()
 
@@ -12,13 +12,13 @@ User = get_user_model()
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope.get("user", AnonymousUser())
-        self.receiver_id = self.scope["url_route"]["kwargs"].get("receiver_id", None)
+        self.receiver_id = self.scope["url_route"]["kwargs"].get("slug", None)
 
         if not self.user.is_authenticated or not self.receiver_id:
             await self.close()
             return
 
-        self.room_name = f"chat_{min(self.user.id, int(self.receiver_id))}_{max(self.user.id, int(self.receiver_id))}"
+        self.room_name = "_".join(sorted([self.user.slug, self.receiver_id]))
         await self.channel_layer.group_add(self.room_name, self.channel_name)
         await self.accept()
 
@@ -27,27 +27,37 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        message_text = data["message"]
+        message_text = data.get("message")
+        # print("Received WebSocket Data:", text_data)
+        if not message_text:
+            return
+
         receiver = await self.get_user(self.receiver_id)
+        if not receiver:
+            return
 
-        if receiver:
-            msg = await self.save_message(self.user, receiver, message_text)
-            await self.channel_layer.group_send(
-                self.room_name,
-                {
-                    "type": "chat_message",
-                    "message_id": msg.id,
-                    "sender": self.user.username,
-                    "message": message_text,
-                    "timestamp": str(msg.timestamp),
-                },
-            )
+        msg = await self.save_message(self.user, receiver, message_text)
 
+        await self.channel_layer.group_send(
+            self.room_name,
+            {
+                "type": "chat_message",
+                "message_id": msg.id,
+                "sender": self.user.username,
+                "message": message_text,
+                "timestamp": str(msg.timestamp),
+            },
+        )
+        # print(
+        #     f"Message saved: {message_text} from {self.user.username} to {receiver.username}"
+        # )
     async def chat_message(self, event):
+        # print("Chat message event received:", event)
         await self.send(text_data=json.dumps(event))
 
     async def read_message(self, text_data):
         data = json.loads(text_data)
+        # print("Read message data:", data)
         message_id = data["message_id"]
         message = await self.get_message(message_id)
 
@@ -69,7 +79,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @staticmethod
     async def save_message(sender, receiver, message):
-        print(sender, receiver, message)
+        # print(sender, receiver, message)
         return await PrivateMessage.objects.acreate(
             sender=sender, receiver=receiver, encrypted_message=message
         )
@@ -77,7 +87,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @staticmethod
     async def get_user(user_id):
         try:
-            return await User.objects.aget(id=user_id)
+            return await User.objects.aget(slug=user_id)
         except User.DoesNotExist:
             return None
 

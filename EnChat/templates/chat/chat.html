@@ -19,7 +19,7 @@
         <p class="text-xs text-gray-500 mt-1">
           {{ msg.timestamp|date:"H:i A"}}
           {% if msg.sender == request.user.username %}
-            <span class="read-status" data-id="{{ msg.id }}">
+            <span class="read-status" id="read-status-{{ msg.id }}">
               {% if msg.is_read %}
                 ✔✔ Read
               {% else %}
@@ -46,78 +46,143 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    let chatSocket = null;
     const chatBox = document.getElementById("chat-box");
     const messageForm = document.getElementById("messageForm");
     const messageInput = document.getElementById("messageInput");
     const userName = "{{ request.user.username }}";
-    const receiverId = "{{ receiver.id }}";
+    const receiverId = "{{ receiver.slug }}";
+    const notificationSound = new Audio('https://r00tus34.me/EnChat/EnChat/assests/notification.mp3');
 
-    const chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${receiverId}/`);
+    function connectWebSocket() {
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        chatSocket = new WebSocket(`${wsScheme}://${window.location.host}/ws/chat/${receiverId}/`);
+        
+        chatSocket.onopen = () => {
+            console.log("WebSocket connected");
+            document.getElementById("online-status").textContent = "Online";
+        };
 
-    // Handle incoming messages
-    chatSocket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
+        chatSocket.onclose = (event) => {
+            console.log("WebSocket disconnected, attempting to reconnect...");
+            document.getElementById("online-status").textContent = "Offline";
+            setTimeout(connectWebSocket, 3000);
+        };
 
-        if (data.type === "chat_message") {
-            appendMessage(data);
-        } else if (data.type === "read_receipt") {
-            updateReadReceipt(data.message_id, data.read_at);
-        }
-    };
+        chatSocket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
 
-    // Send message
-    messageForm.addEventListener("submit", function(e) {
-        e.preventDefault();
-        const message = messageInput.value.trim();
-        if (!message) return;
+        chatSocket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log("Received message:", data);
+                
+                notificationSound.play();
+                if (data.type === "chat_message") {
+                    appendMessage(data);
+                    if (data.sender !== userName) {
+                        sendReadReceipt(data.message_id);
+                    }
+                } else if (data.type === "read_receipt") {
+                    updateReadReceipt(data.message_id);
+                }
+            } catch (error) {
+                console.error("Error processing message:", error);
+            }
+        };
+    }
 
-        chatSocket.send(JSON.stringify({
-            "type": "send_message",
-            "message": message
-        }));
-
-        messageInput.value = "";
-    });
-
-    // Append messages to chat box
     function appendMessage(msg) {
+        const messageDiv = document.createElement('div');
         const isSender = msg.sender === userName;
-        const messageHtml = `
-            <div class="${isSender ? 'text-right' : 'text-left'}">
-                <div class="inline-block px-4 py-2 rounded-xl shadow-lg max-w-xs ${isSender ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}">
-                    ${msg.message}
-                </div>
-                <p class="text-xs text-gray-500 mt-1">
-                    ${msg.timestamp}
-                    ${isSender ? `<span id="read-status-${msg.message_id}" class="text-gray-400">✔ Sent</span>` : ''}
-                </p>
+        
+        messageDiv.className = isSender ? 'text-right' : 'text-left';
+        messageDiv.innerHTML = `
+            <div class="inline-block px-4 py-2 rounded-xl shadow-lg max-w-xs ${
+                isSender ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'
+            }">
+                ${escapeHtml(msg.message)}
             </div>
+            <p class="text-xs text-gray-500 mt-1">
+                ${formatTimestamp(msg.timestamp)}
+                ${isSender ? `<span id="read-status-${msg.message_id}" class="read-status text-gray-400">✔ Sent</span>` : ''}
+            </p>
         `;
 
-        chatBox.insertAdjacentHTML("beforeend", messageHtml);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        chatBox.appendChild(messageDiv);
+        scrollToBottom();
+    }
 
-        if (!isSender) {
-            sendReadReceipt(msg.message_id);
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function formatTimestamp(timestamp) {
+        return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function scrollToBottom() {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function sendReadReceipt(messageId) {
+        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
+                type: "read_message",
+                message_id: messageId
+            }));
         }
     }
 
-    // Send read receipt
-    function sendReadReceipt(messageId) {
-        chatSocket.send(JSON.stringify({
-            "type": "read_message",
-            "message_id": messageId
-        }));
-    }
-
-    // Update read status
-    function updateReadReceipt(messageId, readAt) {
+    function updateReadReceipt(messageId) {
         const statusElement = document.getElementById(`read-status-${messageId}`);
         if (statusElement) {
             statusElement.textContent = "✔✔ Read";
             statusElement.classList.replace("text-gray-400", "text-green-400");
         }
     }
+
+    messageForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        
+        if (message && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
+                message: message
+            }));
+            messageInput.value = "";
+        }
+    });
+
+    // Initialize WebSocket connection
+    connectWebSocket();
+
+    // Keep connection alive
+    setInterval(() => {
+        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({ type: "ping" }));
+        }
+    }, 30000);
+
+    // Reconnect on visibility change
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && (!chatSocket || chatSocket.readyState !== WebSocket.OPEN)) {
+            connectWebSocket();
+        }
+    });
 });
 </script>
+<script>
+    window.onload = function() {
+        const chatBox = document.getElementById("chat-box");
+        chatBox.scrollTop = chatBox.scrollHeight;
+    };
+</script>
+
 {% endblock %}
