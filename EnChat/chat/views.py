@@ -176,7 +176,10 @@ def search_user(request):
         users = User.objects.filter(username__icontains=username)
         return render(request, "chat/search_user.html", {"users": users})
     # make sure it is not returning the id of the user signed in
-    users = User.objects.filter(is_private=False).exclude(id=request.user.id)
+    users = User.objects.filter(is_private=False)
+    for user in users:
+        if user == request.user:
+            user.username = f"{user.username} (You)"
 
     return render(request, "chat/search_user.html", {"users": users})
 

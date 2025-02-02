@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const messageInput = document.getElementById("messageInput");
     const userName = "{{ request.user.username }}";
     const receiverId = "{{ receiver.slug }}";
+    const notificationSound = new Audio('https://r00tus34.me/EnChat/EnChat/assests/notification.mp3');
 
     function connectWebSocket() {
         const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
@@ -76,7 +77,8 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const data = JSON.parse(event.data);
                 console.log("Received message:", data);
-
+                
+                notificationSound.play();
                 if (data.type === "chat_message") {
                     appendMessage(data);
                     if (data.sender !== userName) {
@@ -176,22 +178,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-<scrip>
-    const chatBox = document.getElementById("chat-box");
+<script>
     window.onload = function() {
+        const chatBox = document.getElementById("chat-box");
         chatBox.scrollTop = chatBox.scrollHeight;
     };
 </script>
-<script>
-    const notificationSound = new Audio('http://r00tus34.me/EnChat/EnChat/assests/notification.mp3');
 
-socket.onmessage = function (event) {
-    const data = JSON.parse(event.data);
-    
-    if (data.type === "chat_message") {
-        notificationSound.play(); // Play sound
-        displayMessage(data); // Function to update UI with new message
-    }
-};
-</script>
 {% endblock %}

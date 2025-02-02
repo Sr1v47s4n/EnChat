@@ -20,7 +20,11 @@
           <a href="{% url 'chat' other_user.slug %}" class="flex items-center space-x-4 p-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition mb-2">
             <img src="{{ other_user.profile_picture }}" class="w-10 h-10 rounded-full object-cover" alt="{{ other_user.username }}">
             <div class="flex-1">
-              <p class="font-semibold">{{ other_user.username }}</p>
+              {% if convo.receiver.username == request.user.username %}
+                <p class="font-semibold">{{ convo.sender.username }} (You)</p>
+              {% else %}
+                <p class="font-semibold">{{ other_user.username }}</p>
+              {% endif %}
               <p class="text-sm text-gray-400 truncate w-48">
                 {% if convo.encrypted_message %}
                   {{ convo.encrypted_message|truncatechars:50 }}
