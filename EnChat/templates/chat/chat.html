@@ -17,7 +17,7 @@
           {{ msg.message }}
         </div>
         <p class="text-xs text-gray-500 mt-1">
-          {{ msg.timestamp|date:"H:i" }}
+          {{ msg.timestamp|date:"H:i A"}}
           {% if msg.sender == request.user.username %}
             <span class="read-status" data-id="{{ msg.id }}">
               {% if msg.is_read %}
@@ -45,57 +45,77 @@
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', function() {
     const chatBox = document.getElementById("chat-box");
-    const messageInput = document.getElementById("messageInput");
     const messageForm = document.getElementById("messageForm");
-    const readStatusElements = document.querySelectorAll(".read-status");
-    
-    const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const chatSocket = new WebSocket(
-        `${wsProtocol}://${window.location.host}/ws/chat/{{ receiver.id }}/`
-    );
+    const messageInput = document.getElementById("messageInput");
+    const userName = "{{ request.user.username }}";
+    const receiverId = "{{ receiver.id }}";
 
-    chatSocket.onmessage = function (event) {
+    const chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${receiverId}/`);
+
+    // Handle incoming messages
+    chatSocket.onmessage = function(event) {
         const data = JSON.parse(event.data);
 
         if (data.type === "chat_message") {
             appendMessage(data);
         } else if (data.type === "read_receipt") {
-            updateReadStatus(data.message_id);
+            updateReadReceipt(data.message_id, data.read_at);
         }
     };
 
-    messageForm.addEventListener("submit", function (e) {
+    // Send message
+    messageForm.addEventListener("submit", function(e) {
         e.preventDefault();
         const message = messageInput.value.trim();
         if (!message) return;
 
-        chatSocket.send(JSON.stringify({ message: message }));
+        chatSocket.send(JSON.stringify({
+            "type": "send_message",
+            "message": message
+        }));
+
         messageInput.value = "";
     });
 
+    // Append messages to chat box
     function appendMessage(msg) {
-        const isSender = msg.sender === "{{ request.user.username }}";
+        const isSender = msg.sender === userName;
         const messageHtml = `
-            <div class="${isSender ? "text-right" : "text-left"}">
-                <div class="inline-block px-4 py-2 rounded-xl shadow-lg max-w-xs ${isSender ? "bg-blue-500 text-white" : "bg-gray-700 text-gray-300"}">
+            <div class="${isSender ? 'text-right' : 'text-left'}">
+                <div class="inline-block px-4 py-2 rounded-xl shadow-lg max-w-xs ${isSender ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}">
                     ${msg.message}
                 </div>
                 <p class="text-xs text-gray-500 mt-1">
                     ${msg.timestamp}
-                    ${isSender ? `<span class="read-status" data-id="${msg.message_id}">✔ Sent</span>` : ""}
+                    ${isSender ? `<span id="read-status-${msg.message_id}" class="text-gray-400">✔ Sent</span>` : ''}
                 </p>
             </div>
         `;
+
         chatBox.insertAdjacentHTML("beforeend", messageHtml);
         chatBox.scrollTop = chatBox.scrollHeight;
+
+        if (!isSender) {
+            sendReadReceipt(msg.message_id);
+        }
     }
 
-    function updateReadStatus(messageId) {
-        const element = document.querySelector(`.read-status[data-id="${messageId}"]`);
-        if (element) {
-            element.innerHTML = "✔✔ Read";
+    // Send read receipt
+    function sendReadReceipt(messageId) {
+        chatSocket.send(JSON.stringify({
+            "type": "read_message",
+            "message_id": messageId
+        }));
+    }
+
+    // Update read status
+    function updateReadReceipt(messageId, readAt) {
+        const statusElement = document.getElementById(`read-status-${messageId}`);
+        if (statusElement) {
+            statusElement.textContent = "✔✔ Read";
+            statusElement.classList.replace("text-gray-400", "text-green-400");
         }
     }
 });

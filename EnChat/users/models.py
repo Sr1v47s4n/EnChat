@@ -51,10 +51,24 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     is_private = models.BooleanField(default=False)
+    slug = models.SlugField(max_length=50, unique=True, blank=True)
     objects = UserManager()
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
+
+    def slugify():
+        import random, string
+
+        slug = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        if User.objects.filter(slug=slug).exists():
+            slug = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        return slug
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = self.slugify()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.username

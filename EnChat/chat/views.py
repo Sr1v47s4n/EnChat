@@ -69,15 +69,9 @@ def chat(request, receiver_id):
             "message": (
                 decrypt_message(message.encrypted_message)
             ),  # Handle empty messages
-            "timestamp": message.timestamp.strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ),  # Format timestamp
+            "timestamp": message.timestamp,  # Format timestamp
             "is_read": message.is_read,
-            "read_at": (
-                message.read_at.strftime("%Y-%m-%d %H:%M:%S")
-                if message.read_at
-                else None
-            ),
+            "read_at": (message.read_at if message.read_at else None),
         }
         for message in messages
     ]
@@ -116,9 +110,9 @@ def get_messages(request, receiver_id):
             "id": m.id,
             "sender": m.sender.username,
             "message": decrypt_message(m.encrypted_message),
-            "timestamp": m.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp": m.timestamp,
             "is_read": m.is_read,
-            "read_at": m.read_at.strftime("%Y-%m-%d %H:%M:%S") if m.read_at else None,
+            "read_at": m.read_at if m.read_at else None,
         }
         for m in messages
     ]
@@ -147,7 +141,7 @@ def send_message(request, receiver_id):
                     "id": message.id,
                     "sender": request.user.username,
                     "message": message_text,
-                    "timestamp": message.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    "timestamp": message.timestamp,
                     "is_read": False,
                 },
             }
