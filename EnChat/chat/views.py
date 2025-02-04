@@ -2,11 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q, F, Subquery, OuterRef, Max, Case, When
+from django.db.models import Q, F, Subquery, OuterRef, Case, When
 from django.utils import timezone
 from .models import PrivateMessage
 from users.models import User
-from utils import encrypt_message, decrypt_message
+from utils import decrypt_message
 
 
 @login_required

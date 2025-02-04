@@ -12,8 +12,21 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
-
+ALLOWED_HOSTS = [
+    "enchat.r00tus34.me",
+    "https://enchat.r00tus34.me",
+    "http://enchat.r00tus34.me",
+]
+CORS_ALLOWED_ORIGINS = [
+    "enchat.r00tus34.me",
+    "https://enchat.r00tus34.me",
+    "http://enchat.r00tus34.me",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "enchat.r00tus34.me",
+    "https://enchat.r00tus34.me",
+    "http://enchat.r00tus34.me",
+]
 
 # Application definition
 

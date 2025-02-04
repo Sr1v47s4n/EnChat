@@ -57,7 +57,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
-    def slugify():
+    def slugify(self):
         import random, string
 
         slug = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
